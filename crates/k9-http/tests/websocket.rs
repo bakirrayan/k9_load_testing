@@ -66,6 +66,49 @@ async fn the_server_can_close_first() {
     assert!(ws.recv().await.is_none());
 }
 
+/// A server that closes and resets the connection before the client answers
+/// (Windows reports the failed answer, Linux doesn't): the close is still the
+/// end, not an error.
+#[tokio::test]
+async fn a_reset_after_the_servers_close_is_the_end() {
+    use futures_util::SinkExt;
+    use tokio_tungstenite::tungstenite::Message;
+    use tokio_tungstenite::tungstenite::protocol::CloseFrame;
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("ws://{}/", listener.local_addr().unwrap());
+    let (closed_tx, closed_rx) = tokio::sync::oneshot::channel::<()>();
+    let (reset_tx, reset_rx) = tokio::sync::oneshot::channel::<()>();
+    tokio::spawn(async move {
+        let (tcp, _) = listener.accept().await.unwrap();
+        let mut ws = tokio_tungstenite::accept_async(tcp).await.unwrap();
+        let frame = CloseFrame {
+            code: 4000.into(),
+            reason: "bye".into(),
+        };
+        ws.send(Message::Close(Some(frame))).await.unwrap();
+        // Once the client has the close: a reset instead of a clean shutdown.
+        closed_rx.await.unwrap();
+        ws.get_ref().set_zero_linger().unwrap();
+        drop(ws);
+        reset_tx.send(()).unwrap();
+    });
+    let client = Client::new(ClientConfig::default()).unwrap();
+    let mut ws = client
+        .websocket(&WsRequest::new(&url).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(
+        ws.recv().await.unwrap().unwrap(),
+        WsEvent::Close(Some((4000, "bye".into())))
+    );
+    closed_tx.send(()).unwrap();
+    reset_rx.await.unwrap();
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    let after = ws.recv().await;
+    assert!(after.is_none(), "{after:?}");
+}
+
 #[tokio::test]
 async fn pushed_messages_arrive_in_order() {
     let (server, client) = setup().await;

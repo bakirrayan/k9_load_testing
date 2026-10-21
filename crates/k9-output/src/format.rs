@@ -194,9 +194,10 @@ mod tests {
             rfc3339(UNIX_EPOCH + Duration::new(1_700_000_000, 500_000_000)),
             "2023-11-14T22:13:20.500000000Z"
         );
+        // 700 ns: Windows' SystemTime counts in units of 100 ns.
         assert_eq!(
-            rfc3339(UNIX_EPOCH + Duration::new(951_782_400, 7)),
-            "2000-02-29T00:00:00.000000007Z",
+            rfc3339(UNIX_EPOCH + Duration::new(951_782_400, 700)),
+            "2000-02-29T00:00:00.000000700Z",
             "leap day"
         );
         assert_eq!(

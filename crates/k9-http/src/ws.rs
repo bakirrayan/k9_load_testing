@@ -86,6 +86,9 @@ pub struct WebSocket {
     /// Pings awaiting their pong: (payload, when sent).
     pings: VecDeque<(u64, Instant)>,
     next_ping: u64,
+    /// The peer's close arrived: what the socket does next (a reset, a
+    /// failed answer to the close) isn't an error.
+    peer_closed: bool,
 }
 
 impl std::fmt::Debug for WebSocket {
@@ -128,6 +131,7 @@ impl WebSocket {
                 Err(tungstenite::Error::ConnectionClosed | tungstenite::Error::AlreadyClosed) => {
                     return None;
                 }
+                Err(_) if self.peer_closed => return None,
                 Err(e) => return Some(Err(ws_error(e))),
             };
             let event = match message {
@@ -138,6 +142,7 @@ impl WebSocket {
                     None => continue,
                 },
                 Message::Close(frame) => {
+                    self.peer_closed = true;
                     WsEvent::Close(frame.map(|f| (u16::from(f.code), f.reason.to_string())))
                 }
                 // Pings are answered by tungstenite.
@@ -238,6 +243,7 @@ impl Client {
             marks,
             pings: VecDeque::new(),
             next_ping: 0,
+            peer_closed: false,
         })
     }
 }
