@@ -1,0 +1,101 @@
+{
+  "machine": {
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "cpus": 32
+  },
+  "duration": "20s",
+  "vus": 256,
+  "results": [
+    {
+      "case": "throughput",
+      "tool": "k9 (YAML plan)",
+      "requests": 4924743,
+      "rps": 245957.79870772795,
+      "p50_ms": 0.8150000000000001,
+      "p95_ms": 1.837,
+      "p99_ms": 2.549,
+      "failed": 0,
+      "server_requests": 4924743,
+      "cpu_s": 85.010186,
+      "peak_rss_mb": 116.2890625
+    },
+    {
+      "case": "throughput",
+      "tool": "k9 (Python, 1 process)",
+      "requests": 1541359,
+      "rps": 77036.69385983008,
+      "p50_ms": 0.34600000000000003,
+      "p95_ms": 0.609,
+      "p99_ms": 0.784,
+      "failed": 0,
+      "server_requests": 1541359,
+      "cpu_s": 56.475899999999996,
+      "peak_rss_mb": 85.85546875
+    },
+    {
+      "case": "throughput",
+      "tool": "k9 (Python, --workers 8)",
+      "requests": 3058997,
+      "rps": 152777.38328630416,
+      "p50_ms": 0.611,
+      "p95_ms": 1.694,
+      "p99_ms": 2.9170000000000003,
+      "failed": 0,
+      "server_requests": 3058997,
+      "cpu_s": 299.28567,
+      "peak_rss_mb": 34.328125
+    },
+    {
+      "case": "throughput",
+      "tool": "k6",
+      "requests": 3586754,
+      "rps": 179327.69481475514,
+      "p50_ms": 1.148161,
+      "p95_ms": 2.886965149999997,
+      "p99_ms": 4.536173809999994,
+      "failed": 0,
+      "server_requests": 3586754,
+      "cpu_s": 290.93172300000003,
+      "peak_rss_mb": 894.70703125
+    },
+    {
+      "case": "throughput",
+      "tool": "oha",
+      "requests": 4741682,
+      "rps": 237024.163379736,
+      "p50_ms": 0.892641,
+      "p95_ms": 2.399242,
+      "p99_ms": 3.577125,
+      "failed": 0,
+      "server_requests": 4741914,
+      "cpu_s": 136.071493,
+      "peak_rss_mb": 1179.6015625
+    },
+    {
+      "case": "throughput",
+      "tool": "Locust (1 process)",
+      "requests": 374607,
+      "rps": 19664.92732325969,
+      "p50_ms": 8.0,
+      "p95_ms": 12.0,
+      "p99_ms": 18.0,
+      "failed": 0,
+      "server_requests": 392010,
+      "cpu_s": 20.015595,
+      "peak_rss_mb": 64.6640625
+    },
+    {
+      "case": "throughput",
+      "tool": "Locust (--processes 8)",
+      "requests": 2256096,
+      "rps": 112580.74860701326,
+      "p50_ms": 2.0,
+      "p95_ms": 4.0,
+      "p99_ms": 5.0,
+      "failed": 0,
+      "server_requests": 2256190,
+      "cpu_s": 160.838291,
+      "peak_rss_mb": 54.6875
+    }
+  ]
+}

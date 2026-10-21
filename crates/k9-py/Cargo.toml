@@ -1,0 +1,30 @@
+[package]
+name = "k9-py"
+description = "PyO3 bindings for K9, built as the k9._native module"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+name = "_native"
+crate-type = ["cdylib"]
+
+[dependencies]
+bytes.workspace = true
+http.workspace = true
+k9-cli.workspace = true
+k9-core.workspace = true
+k9-http.workspace = true
+k9-metrics.workspace = true
+pyo3.workspace = true
+serde_json.workspace = true
+tokio = { workspace = true, features = ["sync", "rt"] }
+tokio-util.workspace = true
+url.workspace = true
+
+# pyo3's macros expand to unsafe code, so this crate can't inherit the
+# workspace-wide `unsafe_code = "deny"`.
+[lints.clippy]
+all = { level = "warn", priority = -1 }

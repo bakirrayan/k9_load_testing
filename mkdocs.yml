@@ -1,0 +1,65 @@
+site_name: K9
+site_description: Load testing with k6's UX, a Rust engine and a Python API.
+# Links to repository files point there (tools/mkdocs_hooks.py).
+repo_url: https://github.com/bakirrayan/k9_load_testing
+docs_dir: docs
+hooks:
+  - tools/mkdocs_hooks.py
+
+theme:
+  name: material
+  logo: assets/logo-256.png
+  favicon: assets/logo-256.png
+  font: false
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: memphis
+      toggle:
+        icon: material/weather-night
+        name: Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - content.code.copy
+    - search.suggest
+    - toc.follow
+
+extra_css:
+  - stylesheets/memphis.css
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.snippets:
+      base_path: ["."]
+      check_paths: true
+
+nav:
+  - Get started:
+      - Getting started: getting-started.md
+      - Why K9: why-k9.md
+      - Writing tests: authoring.md
+  - Guides:
+      - Declarative plans: plans.md
+      - Python scripts: scripts.md
+      - HTTP, TLS and network: protocols.md
+      - Running tests: running.md
+      - Results and outputs: outputs.md
+      - Scaling out: scaling.md
+      - Library and pytest: library.md
+  - Project:
+      - Benchmarks: benchmarks.md
+      - Changelog: changelog.md
+      - Development: development.md

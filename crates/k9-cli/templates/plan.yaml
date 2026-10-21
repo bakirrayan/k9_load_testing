@@ -1,0 +1,23 @@
+# A declarative (Tier 1) K9 plan: no Python runs during the test.
+#
+#   k9 run @FILE@                   # flags override options: --vus 50 --duration 1m
+#   k9 inspect @FILE@               # the resolved plan
+#
+# `options` uses k6's names. `flows.default` holds the steps each iteration
+# runs; `extract` puts values from a response into variables that later steps
+# use as {{ name }}.
+
+options:
+  vus: 10
+  duration: 30s
+  thresholds:
+    http_req_failed: ["rate<0.01"]
+    http_req_duration: ["p(95)<500"]
+
+flows:
+  default:
+    - request:
+        url: "@URL@"
+        checks:
+          status is 200: { status: 200 }
+    - sleep: 1s

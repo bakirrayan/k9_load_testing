@@ -1,0 +1,43 @@
+# gRPC steps against the test server's `k9.test.Echo` service:
+#   cargo run -p k9-testserver      (gRPC over h2c on :8080)
+#   k9 run examples/grpc.yaml
+options:
+  vus: 5
+  duration: 10s
+  thresholds:
+    grpc_req_duration: ['p(95)<200']
+    checks: ['rate>0.99']
+
+flows:
+  default:
+    # Protos from a file (relative to this plan).
+    - grpc:
+        target: 127.0.0.1:8080
+        plaintext: true
+        protos: [../crates/k9-testserver/proto/k9/test/echo.proto]
+        method: k9.test.Echo/Say
+        message: { text: 'hello from VU {{ __VU }}', delayMs: 20 }
+        metadata: { x-vu: '{{ __VU }}' }
+        checks:
+          status is OK: { status: 0 }
+          fast: { durationBelow: 100ms }
+        extract:
+          greeting: { json: '$.text' }
+    # No protos: the server's reflection service describes the method.
+    - grpc:
+        target: 127.0.0.1:8080
+        plaintext: true
+        method: k9.test.Echo/Say
+        message: { text: '{{ greeting }}, again' }
+        checks:
+          echoed: { bodyContains: again }
+    # A streaming method: send these, half-close, read every answer.
+    - grpc:
+        target: 127.0.0.1:8080
+        plaintext: true
+        method: k9.test.Echo/Chat
+        messages: [{ text: one }, { text: '{{ greeting }}' }]
+        checks:
+          stream OK: { status: 0 }
+          two answers: { bodyContains: 'hello from VU' }
+    - sleep: 100ms

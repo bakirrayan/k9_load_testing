@@ -1,0 +1,26 @@
+[package]
+name = "k9-metrics"
+description = "K9 metrics: registry, tag interning, lock-light recording and aggregation"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+hdrhistogram.workspace = true
+indexmap.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+criterion.workspace = true
+postcard.workspace = true
+proptest.workspace = true
+
+[lints]
+workspace = true
+
+[[bench]]
+name = "metrics"
+harness = false

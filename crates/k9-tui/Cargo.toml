@@ -1,0 +1,19 @@
+[package]
+name = "k9-tui"
+description = "K9's live terminal dashboard (k9 run --tui)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+k9-core.workspace = true
+k9-metrics.workspace = true
+k9-output.workspace = true
+ratatui.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+
+[lints]
+workspace = true

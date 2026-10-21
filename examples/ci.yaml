@@ -1,0 +1,29 @@
+# A CI-style test: checks and thresholds. Exits 99 if a threshold is crossed.
+# Runs against a local k9-testserver:
+#   cargo run -p k9-testserver
+#   k9 run examples/ci.yaml --summary-export summary.json
+#
+# /error-rate/10 fails exactly 10% of calls, so `http_req_failed` sits at
+# 5% (half the requests) and the `rate<0.05` threshold is crossed on purpose.
+
+options:
+  vus: 10
+  duration: 3s
+  thresholds:
+    http_req_duration: ["p(95)<150"]
+    "http_req_duration{group:::api}": ["avg<50"]
+    http_req_failed: ["rate<0.05"]
+    checks: ["rate>0.95"]
+flows:
+  default:
+    - request:
+        url: "http://127.0.0.1:8080/delay/100"
+        checks:
+          "status is 200": { status: 200 }
+    - group:
+        name: api
+        steps:
+          - request:
+              url: "http://127.0.0.1:8080/error-rate/10"
+              checks:
+                "api ok": { status: 200 }

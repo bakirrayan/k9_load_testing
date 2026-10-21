@@ -1,0 +1,48 @@
+# A declarative (Tier 1) K9 plan. Inspect it with:
+#   k9 inspect examples/basic.yaml
+#
+# `options` uses k6's names. `flows` hold the steps each iteration runs;
+# scenarios pick a flow with `exec` (default: "default").
+
+options:
+  scenarios:
+    browse:
+      executor: ramping-vus
+      startVUs: 0
+      stages:
+        - { duration: 30s, target: 20 }
+        - { duration: 1m, target: 20 }
+        - { duration: 15s, target: 0 }
+    checkout:
+      executor: constant-arrival-rate
+      exec: checkout
+      rate: 5
+      timeUnit: 1s
+      duration: 1m45s
+      preAllocatedVUs: 10
+      maxVUs: 50
+      startTime: 30s
+  thresholds:
+    http_req_duration:
+      - p(95)<500
+    http_req_failed:
+      - threshold: rate<0.01
+        abortOnFail: true
+  tags:
+    service: shop
+
+flows:
+  default:
+    - request: { url: "https://test.k6.io/" }
+    - sleep: 1s
+    - group:
+        name: news
+        steps:
+          - request: { url: "https://test.k6.io/news.php" }
+  checkout:
+    - request:
+        method: POST
+        url: "https://httpbin.org/post"
+        headers: { Content-Type: application/json }
+        body: '{"item": 42}'
+        name: checkout

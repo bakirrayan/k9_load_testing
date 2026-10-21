@@ -1,0 +1,58 @@
+# Builds the docs site (mkdocs, with the landing page docs/index.html) and
+# publishes it to GitHub Pages from main. While the repository is private it
+# runs only when started by hand, and only checks the build.
+name: docs
+
+on:
+  push:
+    branches: [main]
+    paths: &paths
+      - docs/**
+      - mkdocs.yml
+      - tools/mkdocs_hooks.py
+      - CHANGELOG.md
+      - pyproject.toml
+      - uv.lock
+      - .github/workflows/docs.yml
+  pull_request:
+    paths: *paths
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.event_name == 'workflow_dispatch' || !github.event.repository.private
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.0
+      # Only the docs group: the site doesn't need k9 itself built.
+      - run: uv run --only-group docs mkdocs build --strict
+      - if: github.event_name != 'pull_request' && !github.event.repository.private
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+  deploy:
+    if: >-
+      github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+      && !github.event.repository.private
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

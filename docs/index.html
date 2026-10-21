@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K9 Load Testing</title>
+<meta name="description" content="Load testing with k6's UX, a Rust engine and a Python API.">
+<link rel="icon" href="assets/logo-256.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap">
+<style>
+  :root {
+    --cream: #fcfbf7;
+    --ink: #18181b;
+    --pink: #ff6b8b;
+    --lilac: #8b5cf6;
+    --mint: #06d6a0;
+    --sunny: #ffd166;
+    --sky: #38bdf8;
+    --peach: #ffa07a;
+    --gold: #d19e4b;
+    --night: #0b0b10;
+    --line: 2.5px solid var(--ink);
+    --shadow-sm: 3px 3px 0 var(--ink);
+    --shadow: 5px 5px 0 var(--ink);
+    --shadow-lg: 7px 7px 0 var(--ink);
+    --shadow-xl: 9px 9px 0 var(--ink);
+    --display: "Archivo Black", "Syne", sans-serif;
+    --syne: "Syne", sans-serif;
+    --sans: "Plus Jakarta Sans", system-ui, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-weight: 500;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  ::selection { background: var(--pink); color: #fff; }
+  a { color: inherit; }
+  img { max-width: 100%; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+  .mono { font-family: var(--mono); }
+
+  /* Stickers, pills and tactile buttons */
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 5px 14px; border: var(--line); border-radius: 999px;
+    font-family: var(--mono); font-size: 12px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .02em;
+    box-shadow: var(--shadow-sm);
+  }
+  .tilt-n1 { transform: rotate(-1.2deg); }
+  .tilt-p1 { transform: rotate(1.4deg); }
+  .tilt-n2 { transform: rotate(-2.2deg); }
+  .tilt-p2 { transform: rotate(2.4deg); }
+  .card {
+    background: #fff; border: var(--line); border-radius: 24px;
+    box-shadow: var(--shadow-lg); transition: transform .15s ease;
+  }
+  .card:hover { transform: rotate(0deg); }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 16px 30px; border: var(--line); border-radius: 999px;
+    font-family: var(--display); font-size: 15px; text-decoration: none;
+    box-shadow: var(--shadow); transition: transform .08s ease, box-shadow .08s ease;
+    cursor: pointer;
+  }
+  .btn:hover { transform: translate(-1px, -1px); box-shadow: 6px 6px 0 var(--ink); }
+  .btn:active { transform: translate(4px, 4px); box-shadow: 1px 1px 0 var(--ink); }
+  .btn:focus-visible, .tab:focus-visible, .copy:focus-visible, .nav a:focus-visible {
+    outline: 3px solid var(--lilac); outline-offset: 3px;
+  }
+  .dots {
+    background-image: radial-gradient(circle, rgba(24,24,27,.14) 1.5px, transparent 1.5px);
+    background-size: 22px 22px;
+  }
+  .stripes-dark {
+    background-image: repeating-linear-gradient(-45deg, rgba(255,255,255,.06) 0 12px, transparent 12px 24px);
+  }
+  .stripes {
+    background-image: repeating-linear-gradient(-45deg, rgba(255,107,139,.12) 0 10px, transparent 10px 20px);
+  }
+
+  /* Ticker */
+  .ticker {
+    background: var(--sunny); border-bottom: var(--line);
+    font-family: var(--mono); font-size: 12px; font-weight: 800;
+  }
+  .ticker .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 9px; padding-bottom: 9px; }
+  .ticker .tag { background: var(--pink); color: #fff; padding: 2px 10px; border: var(--line); border-radius: 999px; font-size: 10px; box-shadow: var(--shadow-sm); }
+  .ticker a { font-family: var(--display); font-size: 12px; text-underline-offset: 3px; }
+
+  /* Header */
+  header {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(252,251,247,.95); backdrop-filter: blur(8px);
+    border-bottom: var(--line);
+  }
+  header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 76px; }
+  .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+  .brand img {
+    width: 46px; height: 46px; border: var(--line); border-radius: 14px;
+    box-shadow: var(--shadow); transition: transform .2s ease; background: #000;
+  }
+  .brand:hover img { transform: rotate(10deg); }
+  .brand b { font-family: var(--display); font-size: 26px; font-weight: 400; }
+  .brand span {
+    background: var(--pink); color: #fff; padding: 1px 8px; margin-left: 4px;
+    border: var(--line); border-radius: 8px; box-shadow: var(--shadow-sm);
+    font-family: var(--display); font-size: 12px;
+  }
+  .nav { display: flex; gap: 6px; font-family: var(--syne); font-weight: 800; font-size: 14px; }
+  .nav a {
+    padding: 8px 15px; border: 2.5px solid transparent; border-radius: 999px;
+    text-decoration: none; transition: background .15s, border-color .15s;
+  }
+  .nav a:nth-child(1):hover { background: var(--sunny); border-color: var(--ink); }
+  .nav a:nth-child(2):hover { background: var(--mint); border-color: var(--ink); }
+  .nav a:nth-child(3):hover { background: var(--sky); border-color: var(--ink); }
+  .nav a:nth-child(4):hover { background: var(--peach); border-color: var(--ink); }
+  header .btn { padding: 11px 22px; font-size: 13px; background: var(--pink); color: #fff; }
+
+  /* Hero */
+  .hero { position: relative; border-bottom: var(--line); padding: 64px 0 96px; overflow: hidden; }
+  .hero .wrap { display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .float { position: absolute; z-index: 1; pointer-events: none; }
+  .float .pill { font-size: 12px; box-shadow: var(--shadow); }
+  .hero h1 {
+    font-family: var(--display); font-weight: 400;
+    font-size: clamp(38px, 7vw, 76px); line-height: 1.05; letter-spacing: -.02em;
+    margin: 30px 0 22px; max-width: 980px;
+  }
+  .hero h1 mark {
+    display: inline-block; background: var(--pink); color: #fff;
+    padding: 2px 16px; border: var(--line); border-radius: 18px;
+    box-shadow: var(--shadow-lg);
+  }
+  .hero h1 em { font-style: normal; background: var(--mint); padding: 0 12px; border: var(--line); border-radius: 14px; box-shadow: var(--shadow); display: inline-block; }
+  .lede { font-size: clamp(17px, 2.1vw, 22px); font-weight: 600; color: rgba(24,24,27,.8); max-width: 760px; line-height: 1.55; margin: 0 0 40px; }
+  .ctas { display: flex; flex-wrap: wrap; justify-content: center; gap: 18px; margin-bottom: 60px; }
+  .ctas .primary { background: var(--sunny); box-shadow: var(--shadow-lg); }
+  .ctas .secondary { background: #fff; font-family: var(--syne); font-weight: 800; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; width: 100%; max-width: 980px; text-align: left; }
+  .stat { padding: 20px; border-radius: 18px; box-shadow: var(--shadow); }
+  .stat small { display: block; font-family: var(--mono); font-size: 11px; font-weight: 800; color: rgba(24,24,27,.6); text-transform: uppercase; }
+  .stat strong { display: block; font-family: var(--display); font-weight: 400; font-size: 27px; margin-top: 4px; }
+  .stat p { margin: 6px 0 0; font-size: 12.5px; font-weight: 700; }
+  .footnote { margin-top: 22px; font-family: var(--mono); font-size: 11.5px; color: rgba(24,24,27,.6); }
+  .footnote a { font-weight: 800; }
+
+  /* Marquee */
+  .marquee {
+    background: var(--pink); color: #fff; border-bottom: var(--line);
+    padding: 13px 0; overflow: hidden; font-family: var(--display);
+    font-size: 14px; letter-spacing: .05em; text-transform: uppercase;
+  }
+  .marquee-track { display: flex; gap: 32px; width: max-content; animation: marquee 30s linear infinite; white-space: nowrap; }
+  .marquee:hover .marquee-track { animation-play-state: paused; }
+  .marquee i { font-style: normal; color: var(--sunny); }
+  @keyframes marquee { to { transform: translateX(-50%); } }
+
+  section { padding: 84px 0; }
+  .head { text-align: center; max-width: 760px; margin: 0 auto 52px; }
+  .head h2, .split-head h2 {
+    font-family: var(--display); font-weight: 400; font-size: clamp(30px, 4.6vw, 50px);
+    line-height: 1.08; letter-spacing: -.02em; margin: 16px 0 14px;
+  }
+  .head p, .split-head p { font-size: 17px; color: rgba(24,24,27,.72); line-height: 1.6; margin: 0; }
+
+  /* Code demo */
+  .demo {
+    background: var(--lilac); color: #fff; border: var(--line); border-radius: 28px;
+    box-shadow: var(--shadow-xl); padding: clamp(22px, 4vw, 48px);
+  }
+  .demo-top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 22px; margin-bottom: 34px; }
+  .demo-top h2 { font-family: var(--display); font-weight: 400; font-size: clamp(28px, 4.2vw, 46px); margin: 14px 0 0; line-height: 1.08; max-width: 620px; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 4px; background: var(--ink); padding: 6px; border: var(--line); border-radius: 22px; box-shadow: var(--shadow); }
+  .tab {
+    border: 2.5px solid transparent; background: transparent; color: #fff;
+    padding: 9px 18px; border-radius: 999px; font-family: var(--syne); font-weight: 800;
+    font-size: 13px; cursor: pointer;
+  }
+  .tab:hover { color: var(--sunny); }
+  .tab[aria-selected="true"] { background: var(--sunny); color: var(--ink); border-color: var(--ink); box-shadow: var(--shadow-sm); }
+  .demo-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 28px; align-items: stretch; }
+  .term {
+    background: var(--night); border: var(--line); border-radius: 22px; box-shadow: var(--shadow);
+    padding: 20px 22px; font-family: var(--mono); font-size: 13px; color: rgba(255,255,255,.9);
+    min-width: 0; display: flex; flex-direction: column;
+  }
+  .term-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,.18); }
+  .lights { display: flex; align-items: center; gap: 7px; }
+  .lights span { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); }
+  .lights span:nth-child(1) { background: var(--pink); }
+  .lights span:nth-child(2) { background: var(--sunny); }
+  .lights span:nth-child(3) { background: var(--mint); }
+  .lights b { margin-left: 8px; color: var(--sunny); font-size: 11.5px; }
+  .term pre { margin: 0; overflow-x: auto; line-height: 1.65; flex: 1; }
+  .term [role="tabpanel"][hidden] { display: none; }
+  .k { color: var(--pink); } .s { color: var(--mint); } .f { color: var(--sunny); }
+  .c { color: rgba(255,255,255,.45); } .n { color: var(--peach); } .ok { color: var(--mint); } .bad { color: var(--pink); }
+  .summary { font-size: 11.5px; }
+  .copy {
+    background: rgba(255,255,255,.1); color: var(--sunny); border: 1.5px solid rgba(255,255,255,.3);
+    border-radius: 999px; padding: 3px 12px; font-family: var(--mono); font-size: 11px; font-weight: 800; cursor: pointer;
+  }
+
+  /* Comparison */
+  .table-card { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 720px; font-size: 14.5px; }
+  th, td { padding: 17px 20px; text-align: left; border-bottom: var(--line); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 0; }
+  thead th { background: var(--cream); font-family: var(--display); font-weight: 400; font-size: 14px; text-transform: uppercase; }
+  td:first-child { font-weight: 800; }
+  .us { background: rgba(255,209,102,.25); border-left: var(--line); border-right: var(--line); font-family: var(--mono); font-weight: 800; }
+  thead .us { background: var(--sunny); }
+  .dim { color: rgba(24,24,27,.6); font-family: var(--mono); font-size: 13.5px; }
+
+  /* Tiers & features */
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
+  .tier { padding: 30px; display: flex; flex-direction: column; }
+  .icon {
+    width: 62px; height: 62px; border: var(--line); border-radius: 18px; box-shadow: var(--shadow);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--display); font-size: 26px; margin-bottom: 22px;
+  }
+  .label { font-family: var(--mono); font-size: 12px; font-weight: 800; text-transform: uppercase; }
+  .tier h3, .feature h3 { font-family: var(--display); font-weight: 400; font-size: 23px; margin: 8px 0 10px; line-height: 1.15; }
+  .tier p, .feature p { color: rgba(24,24,27,.72); font-size: 14.5px; line-height: 1.6; margin: 0 0 20px; }
+  .box { margin-top: auto; background: var(--cream); border: var(--line); border-radius: 16px; padding: 14px 16px; font-family: var(--mono); font-size: 12.5px; font-weight: 700; }
+  .meter { height: 14px; border: var(--line); border-radius: 999px; padding: 2px; margin: 10px 0 6px; background: var(--cream); }
+  .meter div { height: 100%; border-radius: 999px; }
+  .split-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 22px; margin-bottom: 48px; }
+  .split-head h2 { max-width: 640px; }
+  .split-head p { max-width: 420px; font-size: 15.5px; }
+  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; }
+  .feature { padding: 26px; border-radius: 22px; box-shadow: var(--shadow); }
+  .feature ul { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 7px; }
+  .feature li { border: 2px solid var(--ink); border-radius: 999px; padding: 3px 10px; font-family: var(--mono); font-size: 11.5px; font-weight: 700; background: var(--cream); }
+
+  /* Numbers */
+  .numbers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+  .number { padding: 30px 24px; text-align: center; border-radius: 22px; box-shadow: var(--shadow); }
+  .number strong { display: block; font-family: var(--display); font-weight: 400; font-size: clamp(34px, 4.4vw, 50px); letter-spacing: -.02em; }
+  .number h3 { font-family: var(--syne); font-size: 16px; margin: 8px 0 6px; }
+  .number p { margin: 0; font-size: 12.5px; color: rgba(24,24,27,.7); line-height: 1.5; }
+  .machine { text-align: center; margin-top: 26px; font-family: var(--mono); font-size: 12px; color: rgba(24,24,27,.65); }
+
+  /* Final CTA */
+  .final {
+    background: var(--ink); color: #fff; border: var(--line); border-radius: 28px;
+    box-shadow: var(--shadow-xl); padding: clamp(32px, 6vw, 70px); text-align: center;
+  }
+  .final h2 { font-family: var(--display); font-weight: 400; font-size: clamp(30px, 5.4vw, 60px); line-height: 1.08; margin: 22px auto 18px; max-width: 880px; }
+  .final p { color: rgba(255,255,255,.78); font-size: 18px; max-width: 640px; margin: 0 auto 34px; line-height: 1.55; }
+  .cmds { max-width: 620px; margin: 0 auto 34px; text-align: left; }
+  .final .ctas { margin-bottom: 0; }
+  .final .ghost { background: rgba(255,255,255,.08); color: #fff; border-color: rgba(255,255,255,.5); font-family: var(--syne); font-weight: 800; }
+  .checks { display: flex; flex-wrap: wrap; justify-content: center; gap: 22px; margin-top: 30px; font-family: var(--mono); font-size: 12.5px; }
+
+  /* Footer */
+  footer { border-top: var(--line); }
+  .foot { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 36px; padding: 60px 0 46px; border-bottom: var(--line); }
+  .foot p { color: rgba(24,24,27,.7); font-size: 14px; line-height: 1.6; max-width: 380px; }
+  .foot h4 { font-family: var(--mono); font-size: 12px; text-transform: uppercase; color: rgba(24,24,27,.45); margin: 4px 0 12px; }
+  .foot nav { display: flex; flex-direction: column; gap: 9px; }
+  .foot nav a { font-size: 13.5px; font-weight: 700; text-decoration: none; }
+  .foot nav a:hover { color: var(--pink); }
+  .legal { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding: 26px 0 40px; font-family: var(--mono); font-size: 12px; color: rgba(24,24,27,.6); }
+
+  @media (max-width: 1100px) {
+    .float { display: none; }
+    .nav { display: none; }
+  }
+  @media (max-width: 960px) {
+    .demo-grid { grid-template-columns: 1fr; }
+    .grid3, .features { grid-template-columns: 1fr 1fr; }
+    .numbers, .stats { grid-template-columns: 1fr 1fr; }
+    .foot { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 640px) {
+    .wrap { padding: 0 16px; }
+    .ticker .long { display: none; }
+    header .btn .hide-sm { display: none; }
+    .hero { padding: 44px 0 70px; }
+    .grid3, .features, .numbers { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .stat { padding: 14px; }
+    .stat strong { font-size: 22px; }
+    .ctas .btn { width: 100%; }
+    section { padding: 60px 0; }
+    .foot { grid-template-columns: 1fr; }
+    .tilt-n1, .tilt-p1, .tilt-n2, .tilt-p2 { transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-track { animation: none; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+
+<aside class="ticker" aria-label="Project status">
+  <div class="wrap">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="tag">v0.1 alpha</span>
+      <span class="long">RUST ENGINE ★ PYTHON API ★ K6'S UX. BUILD FROM SOURCE: NOT ON PYPI YET.</span>
+    </div>
+    <a href="getting-started/">Get started ↗</a>
+  </div>
+</aside>
+
+<header>
+  <div class="wrap">
+    <div style="display:flex;align-items:center;gap:30px">
+      <a class="brand" href="./" aria-label="K9 home">
+        <img src="assets/logo-256.png" alt="">
+        <b>K9</b><span>LOAD</span>
+      </a>
+      <nav class="nav" aria-label="Main">
+        <a href="#demo">Tour</a>
+        <a href="#compare">Why K9</a>
+        <a href="#features">Features</a>
+        <a href="benchmarks/">Benchmarks</a>
+        <a href="https://github.com/bakirrayan/k9_load_testing">GitHub</a>
+      </nav>
+    </div>
+    <a class="btn" href="getting-started/">DOCS <span class="hide-sm mono" style="background:var(--sunny);color:var(--ink);border:2px solid var(--ink);border-radius:999px;padding:1px 8px;font-size:11px">→</span></a>
+  </div>
+</header>
+
+<main>
+  <section class="hero dots">
+    <div class="float tilt-n2" style="top:48px;left:40px">
+      <span class="pill" style="background:var(--sunny)">✦ exit code 99, like k6</span>
+    </div>
+    <div class="float tilt-p2" style="top:64px;right:48px">
+      <span class="pill" style="background:var(--mint)">● coordinated omission: corrected</span>
+    </div>
+    <svg class="float" style="bottom:46px;left:64px;opacity:.65" width="64" height="24" viewBox="0 0 64 24" aria-hidden="true"><path d="M2 12 Q 10 2, 18 12 T 34 12 T 50 12 T 62 12" fill="none" stroke="#ff6b8b" stroke-width="4" stroke-linecap="round"/></svg>
+    <svg class="float" style="top:150px;right:120px;opacity:.65" width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><polygon points="20,2 38,36 2,36" fill="#8b5cf6" stroke="#18181b" stroke-width="2.5"/></svg>
+    <svg class="float" style="bottom:70px;right:90px;opacity:.65" width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="14" fill="#38bdf8" stroke="#18181b" stroke-width="2.5"/></svg>
+
+    <div class="wrap">
+      <span class="pill tilt-n1" style="background:var(--lilac);color:#fff;box-shadow:var(--shadow)">
+        <span style="background:var(--sunny);color:var(--ink);padding:1px 8px;border-radius:999px">RUST × PYTHON</span>
+        Python describes, Rust does the work
+      </span>
+      <h1>Load testing with <mark class="tilt-p1">k6's UX</mark>, a Rust engine and a <em>Python</em> API.</h1>
+      <p class="lede">Write tests in Python or YAML, with the executors, checks, thresholds and metric names you know from k6. The part that sends requests and measures time is Rust, so Python only describes the work.</p>
+      <div class="ctas">
+        <a class="btn primary" href="getting-started/">GET STARTED <span style="background:var(--ink);color:var(--sunny);width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px">→</span></a>
+        <a class="btn secondary" href="#demo">See a test ↓</a>
+      </div>
+      <div class="stats">
+        <div class="stat card tilt-n1">
+          <small>Declarative plans</small>
+          <strong style="color:var(--lilac)">1.4–1.5×</strong>
+          <p><span style="color:var(--pink)">★</span> k6's requests/s</p>
+        </div>
+        <div class="stat card tilt-p1">
+          <small>One Python process</small>
+          <strong style="color:var(--pink)">3–4×</strong>
+          <p>Locust's single process</p>
+        </div>
+        <div class="stat card tilt-n1">
+          <small>k6 executors</small>
+          <strong>All 7</strong>
+          <p>Arrival rates included</p>
+        </div>
+        <div class="stat card tilt-p1">
+          <small>License</small>
+          <strong style="color:#05a57c">MIT/Apache</strong>
+          <p>Dual-licensed, your pick</p>
+        </div>
+      </div>
+      <p class="footnote">Measured on one machine (i9-13900K, Linux under WSL2). <a href="benchmarks/">How we measured →</a></p>
+    </div>
+  </section>
+
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee-track">
+      <span>★ All seven k6 executors</span><i>●</i><span>Checks &amp; thresholds</span><i>●</i><span>async def default()</span><i>●</i><span>pytest plugin</span><i>●</i><span>HTTP/2 &amp; HTTP/3</span><i>●</i><span>WebSockets</span><i>●</i><span>gRPC streams</span><i>●</i><span>Prometheus · InfluxDB · OTLP</span><i>●</i><span>Distributed agents</span><i>●</i>
+      <span>★ All seven k6 executors</span><i>●</i><span>Checks &amp; thresholds</span><i>●</i><span>async def default()</span><i>●</i><span>pytest plugin</span><i>●</i><span>HTTP/2 &amp; HTTP/3</span><i>●</i><span>WebSockets</span><i>●</i><span>gRPC streams</span><i>●</i><span>Prometheus · InfluxDB · OTLP</span><i>●</i><span>Distributed agents</span><i>●</i>
+    </div>
+  </div>
+
+  <section id="demo">
+    <div class="wrap">
+      <div class="demo stripes">
+        <div class="demo-top">
+          <div>
+            <span class="pill tilt-n1" style="background:var(--sunny);color:var(--ink)">⚡ one engine, four ways in</span>
+            <h2>Write it like k6. Run it on Rust.</h2>
+          </div>
+          <div class="tabs" role="tablist" aria-label="Ways to write a test">
+            <button class="tab" role="tab" id="tab-async" aria-controls="panel-async" aria-selected="true">Python script</button>
+            <button class="tab" role="tab" id="tab-yaml" aria-controls="panel-yaml" aria-selected="false" tabindex="-1">YAML plan</button>
+            <button class="tab" role="tab" id="tab-plan" aria-controls="panel-plan" aria-selected="false" tabindex="-1">k9.plan</button>
+            <button class="tab" role="tab" id="tab-pytest" aria-controls="panel-pytest" aria-selected="false" tabindex="-1">pytest</button>
+          </div>
+        </div>
+        <div class="demo-grid">
+          <div class="term">
+            <div class="term-bar">
+              <span class="lights"><span></span><span></span><span></span><b id="file-name">script.py</b></span>
+            </div>
+<pre role="tabpanel" id="panel-async" aria-labelledby="tab-async"><code><span class="k">import</span> k9
+
+options = {
+    <span class="s">"vus"</span>: <span class="n">50</span>,
+    <span class="s">"duration"</span>: <span class="s">"1m"</span>,
+    <span class="s">"thresholds"</span>: {<span class="s">"http_req_duration"</span>: [<span class="s">"p(95)&lt;300"</span>]},
+}
+
+<span class="k">async def</span> <span class="f">default</span>():
+    res = <span class="k">await</span> k9.http.get(<span class="s">"https://test.k6.io/"</span>)
+    k9.check(res, {<span class="s">"status is 200"</span>: <span class="k">lambda</span> r: r.status == <span class="n">200</span>})</code></pre>
+<pre role="tabpanel" id="panel-yaml" aria-labelledby="tab-yaml" hidden><code><span class="f">options</span>:
+  <span class="f">vus</span>: <span class="n">10</span>
+  <span class="f">duration</span>: <span class="s">30s</span>
+  <span class="f">thresholds</span>: { <span class="f">http_req_failed</span>: [<span class="s">"rate&lt;0.01"</span>] }
+<span class="f">flows</span>:
+  <span class="f">default</span>:
+    - <span class="f">request</span>:
+        <span class="f">method</span>: <span class="s">POST</span>
+        <span class="f">url</span>: <span class="s">https://example.com/login</span>
+        <span class="f">body</span>: <span class="s">'{"user": "{{ users.name }}"}'</span>
+        <span class="f">extract</span>: { <span class="f">token</span>: { <span class="f">json</span>: <span class="s">$.token</span> } }
+    - <span class="f">request</span>:
+        <span class="f">url</span>: <span class="s">https://example.com/me</span>
+        <span class="f">headers</span>: { <span class="f">Authorization</span>: <span class="s">'Bearer {{ token }}'</span> }
+        <span class="f">checks</span>: { <span class="f">ok</span>: { <span class="f">status</span>: <span class="n">200</span> } }</code></pre>
+<pre role="tabpanel" id="panel-plan" aria-labelledby="tab-plan" hidden><code><span class="k">import</span> k9.plan <span class="k">as</span> p
+
+token = p.var(<span class="s">"token"</span>)
+
+<span class="c"># Python builds the plan once; the run has no Python in it.</span>
+plan = p.Plan(
+    [
+        p.post(<span class="s">"https://example.com/login"</span>, json={<span class="s">"user"</span>: <span class="s">"bob"</span>},
+               extract={<span class="s">"token"</span>: p.from_json(<span class="s">"$.token"</span>)}),
+        p.get(<span class="s">"https://example.com/me"</span>,
+              headers={<span class="s">"Authorization"</span>: <span class="s">f"Bearer </span>{token}<span class="s">"</span>},
+              checks={<span class="s">"ok"</span>: p.status(<span class="n">200</span>)}),
+    ],
+    options={<span class="s">"vus"</span>: <span class="n">10</span>, <span class="s">"duration"</span>: <span class="s">"30s"</span>},
+)</code></pre>
+<pre role="tabpanel" id="panel-pytest" aria-labelledby="tab-pytest" hidden><code><span class="k">import</span> pytest
+
+<span class="c"># Crossed thresholds fail the test.</span>
+<span class="f">@pytest.mark.k9</span>(<span class="s">"load/smoke.py"</span>, vus=<span class="n">10</span>, duration=<span class="s">"30s"</span>)
+<span class="k">def</span> <span class="f">test_checkout_holds_up</span>(k9_result):
+    <span class="k">assert</span> k9_result.metric(<span class="s">"http_req_duration"</span>)[<span class="s">"p(95)"</span>] &lt; <span class="n">300</span>
+
+<span class="k">def</span> <span class="f">test_two_runs</span>(k9_run):
+    <span class="k">assert</span> k9_run(<span class="s">"load/a.yaml"</span>).ok <span class="k">and</span> k9_run(<span class="s">"load/b.yaml"</span>).ok</code></pre>
+          </div>
+          <div class="term">
+            <div class="term-bar">
+              <span class="lights"><span></span><span></span><span></span><b>k9 run · the summary you know</b></span>
+            </div>
+<pre class="summary"><code><span class="c">running (00m10.1s), 00/10 VUs, 990 complete and 0 interrupted iterations</span>
+
+     data_received......: <span class="f">129 kB</span> 13 kB/s
+     data_sent..........: <span class="f">70 kB</span>  7.0 kB/s
+     http_req_duration..: avg=<span class="f">101.88ms</span> med=101.79ms p(95)=<span class="ok">102.62ms</span>
+     http_req_failed....: <span class="ok">0.00%</span>  ✓ 0    ✗ 990
+     http_reqs..........: <span class="f">990</span>    98.100557/s
+     iteration_duration.: avg=101.9ms  p(95)=102.62ms
+     iterations.........: <span class="f">990</span>    98.100557/s
+     vus................: 10     min=10 max=10
+
+<span class="c"># add thresholds: crossing one exits with code 99, as in k6</span></code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="compare" style="padding-top:20px">
+    <div class="wrap">
+      <div class="head">
+        <span class="pill tilt-p1" style="background:var(--pink);color:#fff">★ Reality check</span>
+        <h2>Why another load tester?</h2>
+        <p>k6's script shape and metrics, Goose's engine ideas, and Python for the tests. If Locust serves you well, keep using it: K9 is for when the load generator's own overhead or accuracy matters.</p>
+      </div>
+      <div class="card table-card tilt-n1">
+        <table>
+          <thead>
+            <tr><th scope="col"></th><th scope="col">k6</th><th scope="col">Locust</th><th scope="col">Goose</th><th scope="col" class="us">⚡ K9</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Test language</td><td class="dim">JavaScript</td><td class="dim">Python</td><td class="dim">Rust (compiled)</td><td class="us">Python</td></tr>
+            <tr><td>Engine</td><td class="dim">Go</td><td class="dim">Python (gevent)</td><td class="dim">Rust</td><td class="us">Rust</td></tr>
+            <tr><td>Open-model (arrival-rate) executors</td><td class="dim">✓</td><td class="dim">✗ closed model</td><td class="dim">✗</td><td class="us">✓</td></tr>
+            <tr><td>Coordinated omission</td><td class="dim">Avoided by arrival rates</td><td class="dim">✗</td><td class="dim">✓ corrected</td><td class="us">✓ both</td></tr>
+            <tr><td>Load tests inside pytest</td><td class="dim">✗</td><td class="dim">✗</td><td class="dim">✗</td><td class="us">✓</td></tr>
+            <tr><td>License</td><td class="dim">AGPL-3.0</td><td class="dim">MIT</td><td class="dim">Apache-2.0</td><td class="us">MIT / Apache-2.0</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="tiers">
+    <div class="wrap">
+      <div class="split-head">
+        <div>
+          <span class="pill tilt-n1" style="background:var(--mint)">✦ three tiers</span>
+          <h2>Python where it helps. Rust where it counts.</h2>
+        </div>
+        <p><code>k9 inspect</code> tells you which tier a test runs in, so you know what it costs before you run it.</p>
+      </div>
+      <div class="grid3">
+        <article class="card tier tilt-n1">
+          <div class="icon" style="background:var(--sunny)">1</div>
+          <span class="label" style="color:var(--lilac)">Declarative</span>
+          <h3>YAML plans and <code>k9.plan</code></h3>
+          <p>Python builds the plan once, before the run. Templates, extractors and feeders keep data flowing with no Python in the hot path.</p>
+          <div class="box">Python in the hot path<div class="meter"><div style="width:3%;background:var(--mint)"></div></div>None: full Rust speed</div>
+        </article>
+        <article class="card tier tilt-p1">
+          <div class="icon" style="background:var(--pink);color:#fff">2</div>
+          <span class="label" style="color:var(--pink)">Hooks</span>
+          <h3><code>setup</code>, <code>vu_init</code>, <code>teardown</code></h3>
+          <p>Log in once per VU, prepare data, write your own summary with <code>handle_summary</code>. Each runs once, so its cost doesn't grow with the load.</p>
+          <div class="box">Python in the hot path<div class="meter"><div style="width:12%;background:var(--sunny)"></div></div>Negligible</div>
+        </article>
+        <article class="card tier tilt-n1">
+          <div class="icon" style="background:var(--mint)">3</div>
+          <span class="label" style="color:#05a57c">Iteration functions</span>
+          <h3><code>async def default()</code></h3>
+          <p>Full Python on every iteration: thousands of async VUs on one event loop, or plain <code>def</code> on a thread per VU, across cores with <code>--workers</code>.</p>
+          <div class="box">Python in the hot path<div class="meter"><div style="width:60%;background:var(--pink)"></div></div>Every iteration; scale with workers</div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="features" style="padding-top:20px">
+    <div class="wrap">
+      <div class="split-head">
+        <div>
+          <span class="pill tilt-p1" style="background:var(--sky)">★ what's in the box</span>
+          <h2>Everything a CI load test needs, and then some.</h2>
+        </div>
+        <p>Grafana dashboards and CI configs built for k6 carry over: same metric names, same tags, same exit codes.</p>
+      </div>
+      <div class="features">
+        <article class="card feature tilt-n1">
+          <span class="label" style="color:var(--lilac)">k6-compatible</span>
+          <h3>Executors, checks &amp; thresholds</h3>
+          <p>All seven executors, the threshold syntax with <code>abortOnFail</code>, k6's options, environment variables and exit codes.</p>
+          <ul><li>ramping-vus</li><li>arrival rates</li><li>exit 99</li><li>-e KEY=VALUE</li></ul>
+        </article>
+        <article class="card feature tilt-p1">
+          <span class="label" style="color:var(--pink)">Protocols</span>
+          <h3>HTTP, WebSockets &amp; gRPC</h3>
+          <p>A hyper client with k6's per-phase timings, HTTP/2 by ALPN, experimental HTTP/3, WebSockets and gRPC unary calls and streams.</p>
+          <ul><li>HTTP/1.1</li><li>HTTP/2</li><li>HTTP/3</li><li>WebSocket</li><li>gRPC</li></ul>
+        </article>
+        <article class="card feature tilt-n1">
+          <span class="label" style="color:#05a57c">Outputs</span>
+          <h3>Results where you look</h3>
+          <p>k6's summary, a live terminal dashboard and a self-contained HTML report, and samples streamed to your metrics backend.</p>
+          <ul><li>JSON / CSV</li><li>HTML report</li><li>Prometheus</li><li>InfluxDB</li><li>StatsD</li><li>OTLP</li></ul>
+        </article>
+        <article class="card feature tilt-p1">
+          <span class="label" style="color:var(--lilac)">Scale out</span>
+          <h3>Cores, then machines</h3>
+          <p><code>--workers</code> runs a test in one process per core; <code>--agents</code> spreads it across machines over gRPC. Totals stay exact.</p>
+          <ul><li>--workers auto</li><li>--agents N</li><li>execution segments</li></ul>
+        </article>
+        <article class="card feature tilt-n1">
+          <span class="label" style="color:var(--pink)">Accuracy</span>
+          <h3>Honest latency</h3>
+          <p>Arrival-rate executors report <code>iteration_duration_corrected</code>, so a stalled server shows up, and k9 warns when it is itself the bottleneck.</p>
+          <ul><li>coordinated omission</li><li>CPU &amp; port warnings</li></ul>
+        </article>
+        <article class="card feature tilt-p1">
+          <span class="label" style="color:#05a57c">Authoring</span>
+          <h3>From zero to a test</h3>
+          <p><code>k9 new</code> writes a starter for each tier; <code>k9 convert</code> turns a browser's HAR recording into a plan, tokens and CSRF fields included.</p>
+          <ul><li>k9 new</li><li>k9 convert</li><li>typed API</li></ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:20px">
+    <div class="wrap">
+      <div class="numbers">
+        <div class="card number tilt-n1"><strong style="color:var(--lilac)">135k</strong><h3>requests/s</h3><p>A declarative plan, 100 VUs, a fast local endpoint.</p></div>
+        <div class="card number tilt-p1"><strong style="color:var(--pink)">~70k</strong><h3>requests/s</h3><p>The same load from one Python process, <code>async def</code> VUs.</p></div>
+        <div class="card number tilt-n1"><strong>153k</strong><h3>requests/s</h3><p>A Python script on 8 workers at 256 VUs.</p></div>
+        <div class="card number tilt-p1"><strong style="color:#05a57c">99%</strong><h3>of iterations</h3><p>1,000 VUs on a 200 ms endpoint, one process, p95 203.6 ms.</p></div>
+      </div>
+      <p class="machine">Release build on an i9-13900K (24 cores) with Linux under WSL2. Details and the comparison with k6, oha and Locust: <a href="benchmarks/"><b>benchmarks</b></a>.</p>
+    </div>
+  </section>
+
+  <section style="padding-top:20px">
+    <div class="wrap">
+      <div class="final stripes-dark">
+        <span class="pill tilt-n1" style="background:var(--sunny);color:var(--ink)">⚡ from install to first run</span>
+        <h2>Your first load test is three commands away.</h2>
+        <p>Install the wheel (Linux, macOS, Windows; no Rust needed), let <code>k9 new</code> write the test, and point it at your service.</p>
+        <div class="term cmds">
+          <div class="term-bar">
+            <span class="lights"><span></span><span></span><span></span><b>terminal</b></span>
+            <button class="copy" type="button" data-copy="pip install k9-load&#10;k9 new --url http://localhost:3000/health&#10;k9 run script.py -u 5 -d 10s">Copy</button>
+          </div>
+<pre><code><span class="c">$</span> pip install k9-load                       <span class="c"># or: uv tool install k9-load</span>
+<span class="c">$</span> <span class="f">k9 new</span> --url http://localhost:3000/health <span class="c"># a starter script.py</span>
+<span class="c">$</span> <span class="f">k9 run</span> script.py -u 5 -d 10s</code></pre>
+        </div>
+        <div class="ctas">
+          <a class="btn" style="background:var(--pink);color:#fff" href="getting-started/">READ THE GUIDE <span style="background:var(--sunny);color:var(--ink);border:2px solid var(--ink);border-radius:999px;padding:1px 9px;font-family:var(--mono);font-size:12px">→</span></a>
+          <a class="btn ghost" href="why-k9/">Why K9?</a>
+        </div>
+        <div class="checks">
+          <span style="color:var(--sunny)">✓ Rust engine</span>
+          <span style="color:var(--mint)">✓ Python &amp; YAML tests</span>
+          <span style="color:var(--pink)">✓ MIT or Apache-2.0</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <div>
+        <a class="brand" href="./" aria-label="K9 home"><img src="assets/logo-256.png" alt=""><b>K9</b><span>LOAD</span></a>
+        <p>Load testing with k6's UX, a Rust engine and a Python API. An independent open-source project.</p>
+      </div>
+      <div>
+        <h4>Start</h4>
+        <nav aria-label="Start"><a href="getting-started/">Getting started</a><a href="why-k9/">Why K9</a><a href="authoring/">Writing tests</a><a href="library/">Library &amp; pytest</a></nav>
+      </div>
+      <div>
+        <h4>Guides</h4>
+        <nav aria-label="Guides"><a href="plans/">Declarative plans</a><a href="scripts/">Python scripts</a><a href="outputs/">Results &amp; outputs</a><a href="scaling/">Scaling out</a></nav>
+      </div>
+      <div>
+        <h4>Project</h4>
+        <nav aria-label="Project"><a href="benchmarks/">Benchmarks</a><a href="changelog/">Changelog</a><a href="development/">Development</a><a href="https://github.com/bakirrayan/k9_load_testing">GitHub</a><a href="https://pypi.org/project/k9-load/">PyPI</a></nav>
+      </div>
+    </div>
+    <div class="legal">
+      <span>K9 is dual-licensed under MIT or Apache-2.0.</span>
+      <span>k6 is a trademark of Grafana Labs; K9 is not affiliated with it.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var files = { async: "script.py", yaml: "plan.yaml", plan: "plan.py", pytest: "test_load.py" };
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+    function select(tab) {
+      tabs.forEach(function (t) {
+        var on = t === tab;
+        t.setAttribute("aria-selected", on ? "true" : "false");
+        t.tabIndex = on ? 0 : -1;
+        document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
+      });
+      document.getElementById("file-name").textContent = files[tab.id.slice(4)];
+    }
+    tabs.forEach(function (tab, i) {
+      tab.addEventListener("click", function () { select(tab); });
+      tab.addEventListener("keydown", function (e) {
+        var next = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+        if (!next) return;
+        var t = tabs[(i + next + tabs.length) % tabs.length];
+        select(t);
+        t.focus();
+      });
+    });
+    document.querySelectorAll(".copy").forEach(function (button) {
+      button.addEventListener("click", function () {
+        if (!navigator.clipboard) return;
+        navigator.clipboard.writeText(button.getAttribute("data-copy")).then(function () {
+          button.textContent = "Copied ✓";
+          setTimeout(function () { button.textContent = "Copy"; }, 1500);
+        });
+      });
+    });
+  })();
+</script>
+</body>
+</html>

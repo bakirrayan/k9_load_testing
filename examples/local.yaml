@@ -1,0 +1,11 @@
+# Runs against a local k9-testserver:
+#   cargo run -p k9-testserver
+#   k9 run examples/local.yaml
+
+options:
+  vus: 10
+  duration: 10s
+
+flows:
+  default:
+    - request: { url: "http://127.0.0.1:8080/delay/100" }

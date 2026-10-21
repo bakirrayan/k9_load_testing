@@ -1,0 +1,243 @@
+// The k9 manager ↔ worker protocol.
+//
+// A k9 manager runs a test's hooks, thresholds, outputs and summary; workers
+// (local processes from `k9 run --workers N`, or agents on other machines) run
+// the scenarios, each one execution segment of the test. A worker calls
+// `Manager.Work` and keeps both streams open for the whole run:
+//
+//   worker → Hello (protocol version, token)
+//   manager → Assign (plan, script, segment, setup() data)
+//   worker → Ready                    (script loaded)
+//   manager → Start                   (sent to every worker at once)
+//   worker → Tick every 250 ms (progress; metrics once a second),
+//            Event on the first occurrence of each error,
+//            Samples for the manager's outputs (if asked to),
+//            and finally Done (or Failed)
+//   manager → Stop                    (Ctrl-C, abortOnFail, another worker failed)
+//
+// The manager ends its stream once the run is over; a worker exits then.
+// Times are in milliseconds, sizes in bytes (k6's units).
+
+syntax = "proto3";
+
+package k9.worker.v1;
+
+service Manager {
+  rpc Work(stream WorkerMessage) returns (stream ManagerMessage);
+}
+
+// ---- Manager → worker ------------------------------------------------------
+
+message ManagerMessage {
+  oneof message {
+    Assignment assign = 1;
+    Start start = 2;
+    Stop stop = 3;
+  }
+}
+
+// What a worker runs.
+message Assignment {
+  // The resolved plan (k9's JSON layout, as `k9 inspect` prints it).
+  string plan_json = 1;
+  // The script file the worker loads (a path on the manager's machine), or
+  // empty for a declarative plan.
+  string script = 2;
+  // `-e KEY=VALUE` pairs, in order.
+  repeated KeyValue env = 3;
+  Segment segment = 4;
+  // What `setup()` returned in the manager, as JSON.
+  optional string setup_data = 5;
+  // Send raw samples (`Samples`): the manager has outputs.
+  bool forward_samples = 6;
+  // The script's text, for workers that can't read the manager's files
+  // (agents on other machines): save it under `script`'s file name.
+  optional string script_source = 7;
+  // The local modules the script imports, for the same workers: key is the
+  // path relative to the script's directory, value the source.
+  repeated KeyValue modules = 8;
+}
+
+// Segment `index` of a sequence of points from 0 to 1 (k6's execution
+// segments): e.g. points 0, 1/2, 1 and index 1 is the second half.
+message Segment {
+  repeated Fraction sequence = 1;
+  uint32 index = 2;
+}
+
+message Fraction {
+  uint64 num = 1;
+  uint64 den = 2;
+}
+
+// Start the scenarios now.
+message Start {}
+
+// Interrupt every iteration and finish.
+message Stop {}
+
+// ---- Worker → manager ------------------------------------------------------
+
+message WorkerMessage {
+  oneof message {
+    Hello hello = 1;
+    Ready ready = 2;
+    Tick tick = 3;
+    Event event = 4;
+    Samples samples = 5;
+    Summary done = 6;
+    Failed failed = 7;
+  }
+}
+
+// A worker's first message.
+message Hello {
+  // The manager refuses other versions.
+  uint32 protocol = 1;
+  // The worker's k9 version.
+  string version = 2;
+  uint32 pid = 3;
+  // The run's secret, so only workers meant for it join.
+  string token = 4;
+  // For an agent's worker (`k9 agent --workers N`): the agent's id for this
+  // run (empty for a worker on its own), how many workers it runs and its
+  // share of the test relative to other agents (0 counts as 1).
+  string agent = 5;
+  uint32 workers = 6;
+  uint32 weight = 7;
+  // For a worker `k9 run --workers` started: which of them, from 1 (0
+  // otherwise). Its pid may not be the started process's: on Windows a
+  // venv's python.exe runs the real Python as its child.
+  uint32 slot = 8;
+}
+
+// Assignment loaded; waiting for `Start`.
+message Ready {}
+
+message Tick {
+  uint64 elapsed_ms = 1;
+  // Metrics recorded since the previous tick (empty between seconds).
+  Snapshot metrics = 2;
+  Progress progress = 3;
+}
+
+message Progress {
+  uint32 active_vus = 1;
+  // Most VUs active at once so far.
+  uint32 peak_vus = 2;
+  uint64 iterations_complete = 3;
+  uint64 iterations_interrupted = 4;
+}
+
+// The first occurrence of an error in this worker.
+message Event {
+  oneof event {
+    ScriptError script_error = 1;
+    // A request that got no response, e.g. "connection refused".
+    string request_error = 2;
+  }
+}
+
+message ScriptError {
+  string message = 1;
+  // The traceback, if any.
+  optional string details = 2;
+}
+
+// Raw samples, in order. Metrics and tag sets are numbered in the order they
+// first appear across a worker's batches: a batch only carries the new ones.
+message Samples {
+  repeated string new_metrics = 1;
+  repeated TagSet new_tag_sets = 2;
+  repeated Sample samples = 3;
+}
+
+message TagSet {
+  repeated KeyValue tags = 1;
+}
+
+message Sample {
+  uint32 metric = 1;
+  uint32 tags = 2;
+  // Microseconds since the Unix epoch.
+  uint64 micros = 3;
+  double value = 4;
+}
+
+// A worker's results once its segment has finished.
+message Summary {
+  uint64 iterations_complete = 1;
+  uint64 iterations_interrupted = 2;
+  repeated ErrorCount script_errors = 3;
+  repeated ErrorCount request_errors = 4;
+  // Metrics recorded since the last tick.
+  Snapshot metrics = 5;
+}
+
+message ErrorCount {
+  string message = 1;
+  uint64 count = 2;
+}
+
+// The worker couldn't run its assignment.
+message Failed {
+  string message = 1;
+}
+
+// ---- Metrics ---------------------------------------------------------------
+
+// Metric values by name and tags.
+message Snapshot {
+  repeated Series series = 1;
+}
+
+message Series {
+  string metric = 1;
+  // Sorted by key.
+  repeated KeyValue tags = 2;
+  oneof value {
+    Counter counter = 3;
+    Gauge gauge = 4;
+    Rate rate = 5;
+    Trend trend = 6;
+  }
+}
+
+message Counter {
+  double sum = 1;
+}
+
+message Gauge {
+  double value = 1;
+  double min = 2;
+  double max = 3;
+}
+
+// Non-zero samples out of all samples.
+message Rate {
+  uint64 trues = 1;
+  uint64 total = 2;
+}
+
+// A distribution: an HDR histogram's non-empty buckets, so percentiles merge
+// exactly across workers.
+message Trend {
+  uint64 count = 1;
+  double sum = 2;
+  double min = 3;
+  double max = 4;
+  // Samples above the histogram's range, counted at its maximum.
+  uint64 clamped = 5;
+  repeated Bucket buckets = 6;
+}
+
+message Bucket {
+  // In the histogram's integer units (microseconds for times).
+  uint64 value = 1;
+  uint64 count = 2;
+}
+
+message KeyValue {
+  string key = 1;
+  string value = 2;
+}

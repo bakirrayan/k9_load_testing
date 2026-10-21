@@ -1,0 +1,41 @@
+[package]
+name = "k9-cli"
+description = "The k9 command line"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "k9"
+path = "src/main.rs"
+
+[dependencies]
+axum.workspace = true
+base64.workspace = true
+clap.workspace = true
+k9-core.workspace = true
+k9-grpc.workspace = true
+k9-http.workspace = true
+k9-metrics.workspace = true
+k9-output.workspace = true
+k9-tui.workspace = true
+regex.workspace = true
+serde-saphyr.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+
+[dev-dependencies]
+rcgen.workspace = true
+snap.workspace = true
+serde_json.workspace = true
+k9-testserver.workspace = true
+
+[lints]
+workspace = true
+
+[target."cfg(unix)".dependencies]
+rlimit.workspace = true

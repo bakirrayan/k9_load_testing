@@ -1,0 +1,37 @@
+// The test server's gRPC service, used by k9's own tests and examples.
+syntax = "proto3";
+
+package k9.test;
+
+service Echo {
+  // Echoes `text`, after `delay_ms`; fails with `status` (and `text` as its
+  // message) when that isn't 0. Answers with the header `x-served-by`.
+  rpc Say(SayRequest) returns (SayReply);
+  // Answers each message as `Say` does (bidirectional streaming).
+  rpc Chat(stream SayRequest) returns (stream SayReply);
+}
+
+message SayRequest {
+  string text = 1;
+  uint32 delay_ms = 2;
+  uint32 status = 3;
+}
+
+enum Kind {
+  KIND_UNSPECIFIED = 0;
+  KIND_SHORT = 1;
+  KIND_LONG = 2;
+}
+
+message SayReply {
+  string text = 1;
+  // The request's metadata whose keys start with `x-`.
+  map<string, string> metadata = 2;
+  // `text`'s length in bytes (64-bit: a string in JSON).
+  int64 length = 3;
+  // Always false here: shows that default values are still in the JSON.
+  bool empty = 4;
+  // SHORT up to 10 bytes, LONG above.
+  Kind kind = 5;
+  repeated string words = 6;
+}

@@ -1,0 +1,13 @@
+/target
+/dist
+.venv/
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+.pytest_cache/
+site/
+# Local working notes (not published).
+notes/
+.mypy_cache/
+.ruff_cache/

@@ -1,0 +1,201 @@
+# Builds the Python wheels, the sdist and standalone `k9` binaries. Started by
+# hand: on a `v*` tag (`gh workflow run release.yml --ref v0.2.0`) it attaches
+# them to a GitHub release and publishes the wheels and sdist to PyPI; on a
+# branch it's a dry run.
+name: release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: version
+        name: Read the version (and match it against the tag)
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_REF" == refs/tags/* && "$GITHUB_REF_NAME" != "v$version" ]]; then
+            echo "::error::tag $GITHUB_REF_NAME doesn't match the version in Cargo.toml ($version)"
+            exit 1
+          fi
+
+  wheels:
+    name: Wheel ${{ matrix.platform.name }}
+    needs: version
+    runs-on: ${{ matrix.platform.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - { name: linux-x86_64, runner: ubuntu-latest, target: x86_64, smoke: true }
+          - { name: linux-aarch64, runner: ubuntu-latest, target: aarch64, smoke: false }
+          - { name: macos-arm64, runner: macos-latest, target: aarch64, smoke: true }
+          - { name: macos-x86_64, runner: macos-latest, target: x86_64, smoke: false }
+          - { name: windows-x86_64, runner: windows-latest, target: x64, smoke: true }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.x"
+      - name: Build wheel
+        uses: PyO3/maturin-action@v1
+        env:
+          # ring's assembly needs __ARM_ARCH, which the manylinux2014 cross
+          # compiler doesn't define.
+          CFLAGS_aarch64_unknown_linux_gnu: -D__ARM_ARCH=8
+        with:
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist
+          manylinux: auto
+          sccache: true
+      - name: Smoke test
+        if: matrix.platform.smoke
+        shell: bash
+        run: |
+          python -m venv smoke
+          bin=smoke/bin; [ -d smoke/Scripts ] && bin=smoke/Scripts
+          "$bin/pip" install dist/*.whl
+          "$bin/k9" version
+          "$bin/k9" inspect examples/basic.yaml > /dev/null
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wheel-${{ matrix.platform.name }}
+          path: dist
+
+  sdist:
+    needs: version
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build sdist
+        uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sdist
+          path: dist
+
+  # The Rust `k9` alone: plans (YAML/TOML/JSON) without Python. Linux builds
+  # on the oldest supported runner so the binary runs on older glibc too.
+  binaries:
+    name: Binary ${{ matrix.platform.target }}
+    needs: version
+    runs-on: ${{ matrix.platform.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - { target: x86_64-unknown-linux-gnu, runner: ubuntu-22.04, smoke: true }
+          - { target: aarch64-unknown-linux-gnu, runner: ubuntu-22.04, smoke: false }
+          - { target: aarch64-apple-darwin, runner: macos-latest, smoke: true }
+          - { target: x86_64-apple-darwin, runner: macos-latest, smoke: false }
+          - { target: x86_64-pc-windows-msvc, runner: windows-latest, smoke: true }
+    env:
+      CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
+      CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.platform.target }}
+      - name: Cross linker
+        if: matrix.platform.target == 'aarch64-unknown-linux-gnu'
+        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
+      - name: Build
+        run: cargo build --release --locked -p k9-cli --target ${{ matrix.platform.target }}
+      - name: Package
+        shell: bash
+        run: |
+          name=k9-${{ needs.version.outputs.version }}-${{ matrix.platform.target }}
+          mkdir -p "$name" dist
+          cp README.md LICENSE-MIT LICENSE-APACHE "$name/"
+          if [[ "$RUNNER_OS" == Windows ]]; then
+            cp target/${{ matrix.platform.target }}/release/k9.exe "$name/"
+            7z a "dist/$name.zip" "$name" > /dev/null
+          else
+            cp target/${{ matrix.platform.target }}/release/k9 "$name/"
+            tar czf "dist/$name.tar.gz" "$name"
+          fi
+          if [[ "${{ matrix.platform.smoke }}" == true ]]; then
+            "$name/k9" version
+          fi
+      - uses: actions/upload-artifact@v7
+        with:
+          name: binary-${{ matrix.platform.target }}
+          path: dist
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [version, wheels, sdist, binaries]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        run: cd dist && sha256sum * > SHA256SUMS
+      - name: Release notes from the changelog
+        run: |
+          # The section under "## <version>", up to the next "## " heading.
+          awk -v v="${{ needs.version.outputs.version }}" '
+            /^## / { if (found) exit; if (index($0, "## " v) == 1) { found = 1; next } }
+            found' CHANGELOG.md > notes.md
+          [ -s notes.md ] || echo "Release $GITHUB_REF_NAME." > notes.md
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prerelease=()
+          [[ "$GITHUB_REF_NAME" == *-* ]] && prerelease=(--prerelease)
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "K9 ${GITHUB_REF_NAME#v}" --notes-file notes.md --verify-tag "${prerelease[@]}"
+
+  # PyPI trusted publishing: no token. On pypi.org, k9-load must list this
+  # repository, workflow (release.yml) and environment (pypi) as a publisher.
+  pypi:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [version, wheels, sdist]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/project/k9-load/${{ needs.version.outputs.version }}/
+    permissions:
+      id-token: write
+    steps:
+      # The wheels and the sdist, not the standalone binaries.
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: wheel-*
+          path: dist
+          merge-multiple: true
+      - uses: actions/download-artifact@v8
+        with:
+          name: sdist
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@v1.14.2

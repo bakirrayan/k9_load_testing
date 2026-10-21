@@ -1,0 +1,43 @@
+[package]
+name = "k9-testserver"
+description = "Target server with controllable delays, errors and stalls, used to test K9 itself"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "k9-testserver"
+path = "src/main.rs"
+
+[dependencies]
+bytes.workspace = true
+brotli.workspace = true
+flate2.workspace = true
+zstd.workspace = true
+h3.workspace = true
+h3-quinn.workspace = true
+quinn.workspace = true
+axum.workspace = true
+clap.workspace = true
+http-body-util.workspace = true
+hyper.workspace = true
+hyper-util.workspace = true
+prost.workspace = true
+rcgen.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tokio-rustls.workspace = true
+tokio-stream.workspace = true
+tonic = { workspace = true, features = ["gzip"] }
+tonic-prost.workspace = true
+tonic-reflection.workspace = true
+
+[build-dependencies]
+prost-build.workspace = true
+protoc-bin-vendored.workspace = true
+tonic-prost-build.workspace = true
+
+[lints]
+workspace = true

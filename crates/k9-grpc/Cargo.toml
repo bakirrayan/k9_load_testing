@@ -1,0 +1,31 @@
+[package]
+name = "k9-grpc"
+description = "The k9 manager ↔ worker protocol over gRPC"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+k9-core.workspace = true
+k9-metrics.workspace = true
+prost.workspace = true
+rustls.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-stream.workspace = true
+tonic = { workspace = true, features = ["tls-ring", "tls-webpki-roots"] }
+tonic-prost.workspace = true
+
+[build-dependencies]
+prost-build.workspace = true
+protoc-bin-vendored.workspace = true
+tonic-prost-build.workspace = true
+
+[dev-dependencies]
+k9-core.workspace = true
+rcgen.workspace = true
+
+[lints]
+workspace = true

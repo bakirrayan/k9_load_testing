@@ -1,0 +1,70 @@
+[build-system]
+requires = ["maturin>=1.15,<2"]
+build-backend = "maturin"
+
+[project]
+name = "k9-load"
+description = "Load testing with k6's UX, a Rust engine and a Python API"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT OR Apache-2.0"
+license-files = ["LICENSE-MIT", "LICENSE-APACHE"]
+keywords = ["load-testing", "performance", "benchmark", "k6", "http"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Framework :: Pytest",
+    "Intended Audience :: Developers",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Rust",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Software Development :: Testing :: Traffic Generation",
+    "Typing :: Typed",
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://bakirrayan.github.io/k9_load_testing/"
+Documentation = "https://bakirrayan.github.io/k9_load_testing/getting-started/"
+Repository = "https://github.com/bakirrayan/k9_load_testing"
+Changelog = "https://github.com/bakirrayan/k9_load_testing/blob/main/CHANGELOG.md"
+Issues = "https://github.com/bakirrayan/k9_load_testing/issues"
+
+[project.scripts]
+k9 = "k9.cli:main"
+
+[project.entry-points.pytest11]
+k9 = "k9.pytest_plugin"
+
+[dependency-groups]
+dev = [
+    "maturin>=1.15,<2",
+    "mypy>=1.10",
+    "pytest>=8",
+]
+docs = [
+    # MkDocs 2.0 drops the plugin and theme system Material needs.
+    "mkdocs>=1.6,<2",
+    "mkdocs-material>=9.5,<10",
+]
+
+[tool.maturin]
+python-source = "python"
+module-name = "k9._native"
+manifest-path = "crates/k9-py/Cargo.toml"
+features = ["pyo3/extension-module"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/python"]
+# Warnings (deprecations included) fail the tests.
+filterwarnings = ["error"]

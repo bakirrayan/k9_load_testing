@@ -1,0 +1,8 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 74fc7f4b8350ea3ab916c69107b86723ff9dfbee0b0e7206ae5008790104dbf6 # shrinks to parts = [Segment { from: Fraction { num: 0, den: 1 }, to: Fraction { num: 6, den: 11 } }, Segment { from: Fraction { num: 6, den: 11 }, to: Fraction { num: 13, den: 22 } }, Segment { from: Fraction { num: 13, den: 22 }, to: Fraction { num: 1, den: 1 } }], slot = 30213
+cc 98ef730ab4f330a68aefcf0250dd9855245c7701c8c5d02b82b8b0db3d46f63a # shrinks to parts = [Segment { from: Fraction { num: 0, den: 1 }, to: Fraction { num: 2, den: 5 } }, Segment { from: Fraction { num: 2, den: 5 }, to: Fraction { num: 3, den: 5 } }, Segment { from: Fraction { num: 3, den: 5 }, to: Fraction { num: 1, den: 1 } }], n = 3

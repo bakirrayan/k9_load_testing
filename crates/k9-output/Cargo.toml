@@ -1,0 +1,20 @@
+[package]
+name = "k9-output"
+description = "K9 reporting: k6-style end-of-test summary and outputs"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+bytes.workspace = true
+http.workspace = true
+k9-http.workspace = true
+k9-metrics.workspace = true
+serde_json.workspace = true
+snap.workspace = true
+tokio.workspace = true
+
+[lints]
+workspace = true

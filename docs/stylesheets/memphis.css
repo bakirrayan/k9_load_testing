@@ -1,0 +1,168 @@
+/* K9 docs in the landing page's Neo-Memphis style: cream paper, ink borders,
+   hard offset shadows and candy accents. */
+@import url("https://fonts.googleapis.com/css2?family=Archivo+Black&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap");
+
+:root {
+  --k9-cream: #fcfbf7;
+  --k9-ink: #18181b;
+  --k9-pink: #ff6b8b;
+  --k9-lilac: #8b5cf6;
+  --k9-mint: #06d6a0;
+  --k9-sunny: #ffd166;
+  --k9-sky: #38bdf8;
+  --k9-gold: #d19e4b;
+  --k9-blue: #0b6be7;
+  --k9-border: 2.5px solid var(--k9-ink);
+  --md-text-font: "Plus Jakarta Sans";
+  --md-code-font: "JetBrains Mono";
+}
+
+[data-md-color-scheme="memphis"] {
+  --md-default-bg-color: var(--k9-cream);
+  --md-default-fg-color: var(--k9-ink);
+  --md-default-fg-color--light: #3f3f46;
+  --md-default-fg-color--lighter: #71717a;
+  --md-default-fg-color--lightest: #d4d4d8;
+  --md-primary-fg-color: var(--k9-cream);
+  --md-primary-fg-color--light: var(--k9-cream);
+  --md-primary-fg-color--dark: var(--k9-ink);
+  --md-primary-bg-color: var(--k9-ink);
+  --md-primary-bg-color--light: #3f3f46;
+  --md-accent-fg-color: var(--k9-pink);
+  --md-typeset-a-color: #0757c0;
+  --md-code-bg-color: #ffffff;
+  --md-code-fg-color: var(--k9-ink);
+  --md-footer-bg-color: var(--k9-ink);
+  --md-footer-bg-color--dark: #0b0b0d;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-default-bg-color: #121216;
+  --md-primary-fg-color: #121216;
+  --md-primary-bg-color: var(--k9-cream);
+  --md-accent-fg-color: var(--k9-pink);
+  --md-typeset-a-color: var(--k9-sky);
+  --k9-border: 2.5px solid #3f3f46;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+}
+
+.md-typeset h1,
+.md-typeset h2,
+.md-header__topic .md-ellipsis {
+  font-family: "Archivo Black", sans-serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+.md-typeset h1 {
+  color: var(--md-default-fg-color);
+  font-size: 2.2em;
+}
+
+/* A sticker under each section title. */
+.md-typeset h2 {
+  display: inline-block;
+  padding: 0.15em 0.6em;
+  border: var(--k9-border);
+  border-radius: 999px;
+  background: var(--k9-sunny);
+  color: var(--k9-ink);
+  box-shadow: 3px 3px 0 var(--k9-ink);
+  font-size: 1.15em;
+}
+
+.md-typeset h3 {
+  font-weight: 800;
+}
+
+.md-header {
+  border-bottom: var(--k9-border);
+  box-shadow: none;
+}
+
+.md-header__button.md-logo img {
+  height: 2rem;
+  border: var(--k9-border);
+  border-radius: 0.5rem;
+  box-shadow: 2px 2px 0 var(--k9-ink);
+}
+
+.md-tabs {
+  border-bottom: var(--k9-border);
+}
+
+/* Code: chunky frames with a hard shadow. */
+.md-typeset pre > code {
+  border: var(--k9-border);
+  border-radius: 0.8rem;
+}
+
+.md-typeset pre {
+  border-radius: 0.8rem;
+  box-shadow: 4px 4px 0 var(--k9-ink);
+}
+
+[data-md-color-scheme="slate"] .md-typeset pre {
+  box-shadow: 4px 4px 0 #000;
+}
+
+.md-typeset :not(pre) > code {
+  border: 1.5px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.35rem;
+}
+
+/* Tables and admonitions as cards. */
+.md-typeset table:not([class]) {
+  border: var(--k9-border);
+  border-radius: 0.8rem;
+  box-shadow: 4px 4px 0 var(--k9-ink);
+  overflow: hidden;
+}
+
+.md-typeset table:not([class]) th {
+  background: var(--k9-mint);
+  color: var(--k9-ink);
+  font-weight: 800;
+}
+
+.md-typeset .admonition,
+.md-typeset details,
+.md-typeset blockquote {
+  border: var(--k9-border);
+  border-radius: 0.8rem;
+  box-shadow: 4px 4px 0 var(--k9-ink);
+}
+
+.md-typeset blockquote {
+  padding: 0.4em 1em;
+  background: color-mix(in srgb, var(--k9-sunny) 18%, transparent);
+  color: var(--md-default-fg-color);
+}
+
+.md-typeset a {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+
+.md-typeset a:hover {
+  color: var(--k9-pink);
+}
+
+.md-nav__link--active,
+.md-nav__item .md-nav__link--active {
+  color: var(--k9-pink);
+  font-weight: 800;
+}
+
+.md-search__form {
+  border: var(--k9-border);
+  border-radius: 999px;
+}
+
+.md-footer {
+  border-top: var(--k9-border);
+}
