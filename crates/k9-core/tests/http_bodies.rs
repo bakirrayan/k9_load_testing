@@ -138,10 +138,12 @@ async fn body_mistakes_are_reported_before_the_run_starts() {
 fn multipart_files_are_relative_to_the_plan_file() {
     let yaml = "flows:\n  default:\n    - request: { method: POST, url: 'http://h/', multipart: { f: { file: a.txt }, g: { file: /abs/b.txt }, t: text } }\n";
     let mut plan = load_plan(yaml, Format::Yaml).unwrap();
-    plan.rebase_files(std::path::Path::new("/plans"));
+    let dir = std::path::Path::new("/plans");
+    plan.rebase_files(dir);
     let json = serde_json::to_value(&plan.flows["default"]).unwrap();
     let form = &json[0]["request"]["multipart"];
-    assert_eq!(form["f"]["file"], "/plans/a.txt");
+    // Joined with the OS's separator (`/plans\a.txt` on Windows).
+    assert_eq!(form["f"]["file"], dir.join("a.txt").display().to_string());
     assert_eq!(form["g"]["file"], "/abs/b.txt");
     assert_eq!(form["t"], "text");
 }

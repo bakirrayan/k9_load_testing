@@ -187,11 +187,14 @@ flows:
           - grpc: { target: 'h:1', method: a.B/C, protos: [c.proto], importPaths: [defs] }
 "#;
     let mut plan = load_plan(yaml, Format::Yaml).unwrap();
-    plan.rebase_files(std::path::Path::new("/plans"));
+    let dir = std::path::Path::new("/plans");
+    plan.rebase_files(dir);
+    // Joined with the OS's separator (`/plans\a.proto` on Windows).
+    let under = |file: &str| dir.join(file).display().to_string();
     let json = serde_json::to_value(&plan.flows["default"]).unwrap();
     assert_eq!(
         json[0]["grpc"]["protos"],
-        serde_json::json!(["/plans/a.proto", "/abs/b.proto"])
+        serde_json::json!([under("a.proto"), "/abs/b.proto"])
     );
     let inner = &json[1]["group"]["steps"][0]["grpc"];
     assert_eq!(
@@ -199,7 +202,7 @@ flows:
         serde_json::json!(["c.proto"]),
         "named within the import paths"
     );
-    assert_eq!(inner["importPaths"], serde_json::json!(["/plans/defs"]));
+    assert_eq!(inner["importPaths"], serde_json::json!([under("defs")]));
 }
 
 #[tokio::test]

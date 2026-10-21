@@ -119,11 +119,12 @@ def test_cpu_bound_scripts_scale_across_cores(tmp_path: Path) -> None:
                 n += i * i
         """,
     )
-    # Ideally 2×; the margin leaves room for busy CI machines.
+    # One process can't pass 1× (the GIL); two workers reach ~2× on separate
+    # cores, ~1.5× on hosted CI runners, whose vCPUs share physical cores.
     _, one = run(script)
     _, two = run(script, "--workers", "2")
     ratio = iterations(two) / iterations(one)
-    assert ratio > 1.6, f"1 process: {iterations(one)}, 2 workers: {iterations(two)}"
+    assert ratio > 1.3, f"1 process: {iterations(one)}, 2 workers: {iterations(two)}"
 
 
 def test_a_crashed_worker_is_reported(tmp_path: Path) -> None:
